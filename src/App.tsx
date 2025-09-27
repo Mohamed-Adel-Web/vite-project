@@ -3,17 +3,18 @@ import VodaModel from "./assets/vodafoneCharacters.glb";
 import { useRef } from "react";
 
 export default function App() {
-  const modelRef = useRef<any>(null);
+  const viewersRef = useRef<any[]>([]);
 
   const startAR = () => {
-    if (modelRef.current) {
-      modelRef.current.activateAR(); // 🚀 directly opens AR mode
-    }
+    // 🚀 Start AR for all models
+    viewersRef.current.forEach((viewer) => {
+      if (viewer) viewer.activateAR();
+    });
   };
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
-      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+      <h1 className="text-3xl mb-6">🎮 AR Hunt</h1>
 
       <button
         onClick={startAR}
@@ -22,25 +23,20 @@ export default function App() {
         Start AR
       </button>
 
-      {/* Hidden model-viewer (only used to trigger AR) */}
-      <model-viewer
-        ref={modelRef}
-        src={VodaModel}
-        alt="Vodafone Character"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        style={{ width: "0px", height: "0px", visibility: "hidden" }}
-      ></model-viewer>
-      <model-viewer
-        ref={modelRef}
-        src={VodaModel}
-        alt="Vodafone Character"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        style={{ width: "0px", height: "0px", visibility: "hidden" }}
-      ></model-viewer>
+      {/* 4 hidden model-viewers (different positions in AR) */}
+      {[0, 1, 2, 3].map((_, i) => (
+        <model-viewer
+          key={i}
+          ref={(el) => (viewersRef.current[i] = el)}
+          src={VodaModel}
+          alt={`Vodafone Character ${i + 1}`}
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          camera-controls
+          auto-rotate
+          style={{ width: "0px", height: "0px", visibility: "hidden" }}
+        ></model-viewer>
+      ))}
     </div>
   );
 }
