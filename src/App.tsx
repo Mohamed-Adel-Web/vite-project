@@ -1,6 +1,6 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 export default function App() {
   const modelRef = useRef<any>(null);
@@ -18,20 +18,17 @@ export default function App() {
   const moveCharacter = () => {
     if (!modelRef.current) return;
 
-    // Random X/Z (spread around user)
     const x = (Math.random() * 4 - 2).toFixed(2); // -2 to 2
-    const z = (Math.random() * -4 - 1).toFixed(2); // -1 to -5 (in front)
+    const z = (Math.random() * -4 - 1).toFixed(2); // -1 to -5
 
-    // Apply new position
     modelRef.current.setAttribute("position", `${x} 0 ${z}`);
 
-    // Keep moving every 2s until game over
     if (!gameOver) {
       setTimeout(moveCharacter, 2000);
     }
   };
 
-  // Handle tap on model
+  // Handle tap event
   const handleTap = () => {
     if (gameOver) return;
 
@@ -43,6 +40,20 @@ export default function App() {
       alert("🎉 Congrats! You won a gift 🎁");
     }
   };
+
+  // Attach tap listener once model-viewer is mounted
+  useEffect(() => {
+    const node = modelRef.current;
+    if (!node) return;
+
+    const handleClick = () => handleTap();
+
+    node.addEventListener("click", handleClick);
+
+    return () => {
+      node.removeEventListener("click", handleClick);
+    };
+  }, [score, gameOver]);
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
@@ -66,7 +77,6 @@ export default function App() {
         camera-controls
         autoplay
         style={{ width: "0px", height: "0px", visibility: "hidden" }}
-        onClick={handleTap}
       ></model-viewer>
     </div>
   );
