@@ -1,25 +1,28 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
 import { useRef, useState, useEffect } from "react";
+import * as THREE from "three";
 
 export default function App() {
   const modelRef = useRef<any>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
 
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
   const startAR = () => {
     if (modelRef.current) {
       modelRef.current.activateAR();
-      moveCharacter(); // start moving
+      moveCharacter();
     }
   };
 
-  // Move character to random AR position
   const moveCharacter = () => {
     if (!modelRef.current) return;
 
-    const x = (Math.random() * 4 - 2).toFixed(2); // -2 to 2
-    const z = (Math.random() * -4 - 1).toFixed(2); // -1 to -5
+    const x = (Math.random() * 4 - 2).toFixed(2);
+    const z = (Math.random() * -4 - 1).toFixed(2);
 
     modelRef.current.setAttribute("position", `${x} 0 ${z}`);
 
@@ -28,30 +31,41 @@ export default function App() {
     }
   };
 
-  // Handle tap event
-  const handleTap = () => {
-    if (gameOver) return;
+  const handleTap = (event: MouseEvent) => {
+    if (!modelRef.current || gameOver) return;
 
-    const newScore = score + 1;
-    setScore(newScore);
+    const viewer = modelRef.current;
+    const scene = viewer?.model?.scene;
+    const camera = viewer?.camera;
 
-    if (newScore >= 3) {
-      setGameOver(true);
-      alert("🎉 Congrats! You won a gift 🎁");
+    if (!scene || !camera) return;
+
+    // Convert click to normalized device coords
+    const rect = viewer.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+
+    const intersects = raycaster.intersectObject(scene, true);
+
+    if (intersects.length > 0) {
+      // 🎯 Hit the character!
+      const newScore = score + 1;
+      setScore(newScore);
+
+      if (newScore >= 3) {
+        setGameOver(true);
+        alert("🎉 Congrats! You won a gift 🎁");
+      }
     }
   };
 
-  // Attach tap listener once model-viewer is mounted
+  // Attach event listener for taps
   useEffect(() => {
-    const node = modelRef.current;
-    if (!node) return;
-
-    const handleClick = () => handleTap();
-
-    node.addEventListener("click", handleClick);
-
+    window.addEventListener("pointerdown", handleTap);
     return () => {
-      node.removeEventListener("click", handleClick);
+      window.removeEventListener("pointerdown", handleTap);
     };
   }, [score, gameOver]);
 
@@ -67,7 +81,6 @@ export default function App() {
         Start AR
       </button>
 
-      {/* Hidden AR model */}
       <model-viewer
         ref={modelRef}
         src={VodaModel}
@@ -76,7 +89,7 @@ export default function App() {
         ar-modes="webxr scene-viewer quick-look"
         camera-controls
         autoplay
-        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+        style={{ width: "100%", height: "500px" }}
       ></model-viewer>
     </div>
   );
