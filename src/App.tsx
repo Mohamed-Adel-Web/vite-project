@@ -1,59 +1,37 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useState, useEffect } from "react";
+import { useRef } from "react";
 
 export default function App() {
-  const [started, setStarted] = useState(false);
+  const modelRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (!started) return;
-
-    const viewers = document.querySelectorAll("model-viewer");
-    viewers.forEach((viewer, i) => {
-      viewer.addEventListener("click", (event: any) => {
-        const hit = (viewer as any).positionAndNormalFromPoint(
-          event.clientX,
-          event.clientY
-        );
-        if (hit) {
-          alert(`🎯 You caught Character ${i + 1}!`);
-        }
-      });
-    });
-  }, [started]);
-
-  const positions = [
-    { x: 0, y: 0, z: -1 },
-    { x: 1, y: 0, z: -2 },
-    { x: -1, y: 0, z: -2 },
-    { x: 0.5, y: 0, z: -3 },
-  ];
+  const startAR = () => {
+    if (modelRef.current) {
+      modelRef.current.activateAR(); // 🚀 directly opens AR mode
+    }
+  };
 
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-black text-white">
-      {!started ? (
-        <button
-          onClick={() => setStarted(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-xl text-lg shadow-lg"
-        >
-          ▶ Start AR Game
-        </button>
-      ) : (
-        positions.map((pos, i) => (
-          <model-viewer
-            key={i}
-            src={VodaModel}
-            alt={`Vodafone Character ${i + 1}`}
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-placement="floor"
-            camera-controls
-            auto-rotate
-            style={{ width: "100%", height: "100%", display: "none" }} // hidden but AR button shows
-            data-position={`${pos.x} ${pos.y} ${pos.z}`}
-          ></model-viewer>
-        ))
-      )}
+    <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
+      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+
+      <button
+        onClick={startAR}
+        className="px-6 py-3 bg-green-500 rounded-lg mb-6"
+      >
+        Start AR
+      </button>
+
+      {/* Hidden model-viewer (only used to trigger AR) */}
+      <model-viewer
+        ref={modelRef}
+        src={VodaModel}
+        alt="Vodafone Character"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+      ></model-viewer>
     </div>
   );
 }
