@@ -1,40 +1,50 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useRef } from "react";
+import { useEffect } from "react";
 
 export default function App() {
-  const viewersRef = useRef<any[]>([]);
-
-  const startAR = () => {
-    // 🚀 Start AR for all models
-    viewersRef.current.forEach((viewer) => {
-      if (viewer) viewer.activateAR();
+  useEffect(() => {
+    // Add click listener for all characters
+    const viewers = document.querySelectorAll("model-viewer");
+    viewers.forEach((viewer, i) => {
+      viewer.addEventListener("click", (event: any) => {
+        const hit = (viewer as any).positionAndNormalFromPoint(
+          event.clientX,
+          event.clientY
+        );
+        if (hit) {
+          alert(`🎯 You caught Character ${i + 1}!`);
+        }
+      });
     });
-  };
+  }, []);
+
+  // Random positions (x, z) around user
+  const positions = [
+    { x: 0, y: 0, z: -1 }, // in front
+    { x: 1, y: 0, z: -2 }, // right
+    { x: -1, y: 0, z: -2 }, // left
+    { x: 0.5, y: 0, z: -3 }, // farther away
+  ];
 
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
-      <h1 className="text-3xl mb-6">🎮 AR Hunt</h1>
+    <div className="w-full h-screen flex items-center justify-center bg-black text-white">
+      <h1 className="absolute top-4 text-2xl">
+        🎮 AR Hunt: Catch 4 Characters!
+      </h1>
 
-      <button
-        onClick={startAR}
-        className="px-6 py-3 bg-green-500 rounded-lg mb-6"
-      >
-        Start AR
-      </button>
-
-      {/* 4 hidden model-viewers (different positions in AR) */}
-      {[0, 1, 2, 3].map((_, i) => (
+      {positions.map((pos, i) => (
         <model-viewer
           key={i}
-          ref={(el) => (viewersRef.current[i] = el)}
           src={VodaModel}
           alt={`Vodafone Character ${i + 1}`}
           ar
           ar-modes="webxr scene-viewer quick-look"
+          ar-placement="floor"
           camera-controls
           auto-rotate
-          style={{ width: "0px", height: "0px", visibility: "hidden" }}
+          style={{ width: "100%", height: "100%" }}
+          data-position={`${pos.x} ${pos.y} ${pos.z}`}
         ></model-viewer>
       ))}
     </div>
