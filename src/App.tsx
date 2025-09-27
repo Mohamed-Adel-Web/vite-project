@@ -1,49 +1,40 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
-// @ts-ignore
-import { ARButton } from "three/examples/jsm/webxr/ARButton";
-import { useEffect } from "react";
+import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-
-function Character({ onCatch }: { onCatch: () => void }) {
-  const { scene } = useGLTF(VodaModel);
-
-  return (
-    <primitive
-      object={scene}
-      scale={1}
-      position={[0, 0, -2]}
-      onClick={onCatch} // 👈 works directly
-    />
-  );
-}
+import { useRef } from "react";
 
 export default function App() {
-  useEffect(() => {
-    // Add AR button to DOM
-    document.body.appendChild(
-      ARButton.createButton((window as any).renderer, {
-        requiredFeatures: ["hit-test"],
-      })
-    );
-  }, []);
+  const modelRef = useRef<any>(null);
 
-  const handleCatch = () => {
-    alert("🎉 You tapped the character!");
+  const startAR = () => {
+    if (modelRef.current) {
+      modelRef.current.activateAR(); // 🚀 directly opens AR mode
+    }
   };
 
   return (
-    <Canvas
-      camera={{ position: [0, 1.6, 3], fov: 70 }}
-      onCreated={({ gl }) => {
-        (window as any).renderer = gl;
-        gl.xr.enabled = true;
-      }}
-    >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[2, 5, 2]} />
-      <Character onCatch={handleCatch} />
-      <OrbitControls />
-    </Canvas>
+    <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
+      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+
+      <button
+        onClick={startAR}
+        className="px-6 py-3 bg-green-500 rounded-lg mb-6"
+      >
+        Start AR
+      </button>
+
+      {/* Hidden model-viewer (only used to trigger AR) */}
+      <model-viewer
+        ref={modelRef}
+        onClick={() => {
+          window.alert("hi");
+        }}
+        src={VodaModel}
+        alt="Vodafone Character"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+      ></model-viewer>
+    </div>
   );
 }
