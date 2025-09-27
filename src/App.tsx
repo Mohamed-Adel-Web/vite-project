@@ -1,19 +1,53 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export default function App() {
   const modelRef = useRef<any>(null);
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
 
   const startAR = () => {
     if (modelRef.current) {
-      modelRef.current.activateAR(); // 🚀 directly opens AR mode
+      modelRef.current.activateAR();
+      moveCharacter(); // start moving
+    }
+  };
+
+  // Move character to random AR position
+  const moveCharacter = () => {
+    if (!modelRef.current) return;
+
+    // Random X/Z (spread around user)
+    const x = (Math.random() * 4 - 2).toFixed(2); // -2 to 2
+    const z = (Math.random() * -4 - 1).toFixed(2); // -1 to -5 (in front)
+
+    // Apply new position
+    modelRef.current.setAttribute("position", `${x} 0 ${z}`);
+
+    // Keep moving every 2s until game over
+    if (!gameOver) {
+      setTimeout(moveCharacter, 2000);
+    }
+  };
+
+  // Handle tap on model
+  const handleTap = () => {
+    if (gameOver) return;
+
+    const newScore = score + 1;
+    setScore(newScore);
+
+    if (newScore >= 3) {
+      setGameOver(true);
+      alert("🎉 Congrats! You won a gift 🎁");
     }
   };
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
-      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+      <h1 className="text-3xl mb-4">🎮 AR Treasure Hunt</h1>
+      <p className="mb-4">Score: {score}</p>
 
       <button
         onClick={startAR}
@@ -22,7 +56,7 @@ export default function App() {
         Start AR
       </button>
 
-      {/* Hidden model-viewer (only used to trigger AR) */}
+      {/* Hidden AR model */}
       <model-viewer
         ref={modelRef}
         src={VodaModel}
@@ -30,7 +64,9 @@ export default function App() {
         ar
         ar-modes="webxr scene-viewer quick-look"
         camera-controls
+        autoplay
         style={{ width: "0px", height: "0px", visibility: "hidden" }}
+        onClick={handleTap}
       ></model-viewer>
     </div>
   );
