@@ -1,10 +1,13 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
+  const [started, setStarted] = useState(false);
+
   useEffect(() => {
-    // Add click listener for all characters
+    if (!started) return;
+
     const viewers = document.querySelectorAll("model-viewer");
     viewers.forEach((viewer, i) => {
       viewer.addEventListener("click", (event: any) => {
@@ -17,36 +20,40 @@ export default function App() {
         }
       });
     });
-  }, []);
+  }, [started]);
 
-  // Random positions (x, z) around user
   const positions = [
-    { x: 0, y: 0, z: -1 }, // in front
-    { x: 1, y: 0, z: -2 }, // right
-    { x: -1, y: 0, z: -2 }, // left
-    { x: 0.5, y: 0, z: -3 }, // farther away
+    { x: 0, y: 0, z: -1 },
+    { x: 1, y: 0, z: -2 },
+    { x: -1, y: 0, z: -2 },
+    { x: 0.5, y: 0, z: -3 },
   ];
 
   return (
     <div className="w-full h-screen flex items-center justify-center bg-black text-white">
-      <h1 className="absolute top-4 text-2xl">
-        🎮 AR Hunt: Catch 4 Characters!
-      </h1>
-
-      {positions.map((pos, i) => (
-        <model-viewer
-          key={i}
-          src={VodaModel}
-          alt={`Vodafone Character ${i + 1}`}
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-placement="floor"
-          camera-controls
-          auto-rotate
-          style={{ width: "100%", height: "100%" }}
-          data-position={`${pos.x} ${pos.y} ${pos.z}`}
-        ></model-viewer>
-      ))}
+      {!started ? (
+        <button
+          onClick={() => setStarted(true)}
+          className="px-6 py-3 bg-red-600 text-white rounded-xl text-lg shadow-lg"
+        >
+          ▶ Start AR Game
+        </button>
+      ) : (
+        positions.map((pos, i) => (
+          <model-viewer
+            key={i}
+            src={VodaModel}
+            alt={`Vodafone Character ${i + 1}`}
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-placement="floor"
+            camera-controls
+            auto-rotate
+            style={{ width: "100%", height: "100%", display: "none" }} // hidden but AR button shows
+            data-position={`${pos.x} ${pos.y} ${pos.z}`}
+          ></model-viewer>
+        ))
+      )}
     </div>
   );
 }
