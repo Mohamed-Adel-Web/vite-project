@@ -1,6 +1,6 @@
 import "@google/model-viewer";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export default function App() {
   const modelRef = useRef<any>(null);
@@ -10,6 +10,26 @@ export default function App() {
       modelRef.current.activateAR(); // 🚀 directly opens AR mode
     }
   };
+
+  useEffect(() => {
+    if (!modelRef.current) return;
+
+    const modelViewer = modelRef.current;
+
+    // 👆 Handle taps inside the 3D canvas
+    const handleTap = (event: MouseEvent) => {
+      const hit = modelViewer.positionAndNormalFromPoint(
+        event.clientX,
+        event.clientY
+      );
+      if (hit) {
+        alert("🎉 You tapped on the character!");
+      }
+    };
+
+    modelViewer.addEventListener("click", handleTap);
+    return () => modelViewer.removeEventListener("click", handleTap);
+  }, []);
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
@@ -22,18 +42,14 @@ export default function App() {
         Start AR
       </button>
 
-      {/* Hidden model-viewer (only used to trigger AR) */}
       <model-viewer
         ref={modelRef}
-        onClick={() => {
-          window.alert("hi");
-        }}
         src={VodaModel}
         alt="Vodafone Character"
         ar
         ar-modes="webxr scene-viewer quick-look"
         camera-controls
-        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+        style={{ width: "100%", height: "500px" }}
       ></model-viewer>
     </div>
   );
