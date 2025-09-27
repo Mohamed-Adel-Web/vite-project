@@ -2,10 +2,11 @@
 import { useState, useEffect } from "react";
 import "@google/model-viewer";
 import "./App.css";
+import VodaModel from "./assets/vodafoneCharacters.glb";
 
 function App() {
   const TOTAL_TARGETS = 4;
-  const GAME_TIME = 30;
+  const GAME_TIME = 30; // seconds
 
   const [found, setFound] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
@@ -46,7 +47,7 @@ function App() {
           {Array.from({ length: TOTAL_TARGETS }).map((_, i) => (
             <model-viewer
               key={i}
-              src="/vodafoneCharacters.glb"
+              src={VodaModel}
               alt={`Vodafone Character ${i + 1}`}
               ar
               ar-modes="webxr scene-viewer quick-look"
