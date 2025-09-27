@@ -1,32 +1,40 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import { Suspense } from "react";
-import { XR, ARButton, createXRStore } from "@react-three/xr";
-
-import { ModelViewer } from "./components/ModelViewer";
-import vodaChar from "./assets/vodafoneCharacters.glb";
+import "@google/model-viewer";
+import VodaModel from "./assets/vodafoneCharacters.glb";
+import { useRef } from "react";
 
 export default function App() {
-  const store = createXRStore();
+  const modelRef = useRef<any>(null);
+
+  const startAR = () => {
+    if (modelRef.current) {
+      modelRef.current.activateAR(); // 🚀 directly opens AR mode
+    }
+  };
 
   return (
-    <div className="w-full h-screen bg-black">
-      <ARButton store={store} />
+    <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
+      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
 
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-        <XR store={store}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[5, 5, 5]} />
+      <button
+        onClick={startAR}
+        className="px-6 py-3 bg-green-500 rounded-lg mb-6"
+      >
+        Start AR
+      </button>
 
-          <Suspense fallback={null}>
-            <ModelViewer path={vodaChar} />
-            {/* 🌍 Environment lighting (studio HDR) */}
-            <Environment preset="sunset" />
-          </Suspense>
-
-          <OrbitControls />
-        </XR>
-      </Canvas>
+      {/* Hidden model-viewer (only used to trigger AR) */}
+      <model-viewer
+        ref={modelRef}
+        onClick={() => {
+          window.alert("hi");
+        }}
+        src={VodaModel}
+        alt="Vodafone Character"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+      ></model-viewer>
     </div>
   );
 }
