@@ -25,6 +25,9 @@ export default function App() {
       {/* Hidden model-viewer (only used to trigger AR) */}
       <model-viewer
         ref={modelRef}
+        onClick={() => {
+          window.alert("hi");
+        }}
         src={VodaModel}
         alt="Vodafone Character"
         ar
