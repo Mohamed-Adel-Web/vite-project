@@ -22,19 +22,56 @@ export default function App() {
         }
       };
 
-      // Listen for clicks on the model
-      modelViewer.addEventListener("click", handleModelClick);
+      // Wait for model to load before adding event listeners
+      const handleLoad = () => {
+        modelViewer.addEventListener("click", handleModelClick);
+      };
+
+      // Listen for model load event
+      modelViewer.addEventListener("load", handleLoad);
 
       // Cleanup
       return () => {
+        modelViewer.removeEventListener("load", handleLoad);
         modelViewer.removeEventListener("click", handleModelClick);
       };
     }
   }, []);
 
   const startAR = () => {
-    if (modelRef.current) {
-      modelRef.current.activateAR();
+    const modelViewer = modelRef.current;
+    if (modelViewer) {
+      // Wait for model to be ready, then try AR
+      const attemptAR = async () => {
+        try {
+          // Ensure model is loaded
+          if (!modelViewer.loaded) {
+            await new Promise((resolve) => {
+              modelViewer.addEventListener("load", resolve, { once: true });
+            });
+          }
+
+          // Wait for any pending updates
+          await modelViewer.updateComplete;
+
+          // Check AR availability and activate
+          if (
+            typeof modelViewer.activateAR === "function" &&
+            modelViewer.canActivateAR
+          ) {
+            await modelViewer.activateAR();
+          } else {
+            alert("AR is not available on this device/browser");
+          }
+        } catch (error) {
+          console.error("AR activation failed:", error);
+          alert(
+            "Failed to start AR mode. Make sure you're on HTTPS and using a compatible device."
+          );
+        }
+      };
+
+      attemptAR();
     }
   };
 
