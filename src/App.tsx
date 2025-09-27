@@ -32,6 +32,15 @@ export default function App() {
         camera-controls
         style={{ width: "0px", height: "0px", visibility: "hidden" }}
       ></model-viewer>
+      <model-viewer
+        ref={modelRef}
+        src={VodaModel}
+        alt="Vodafone Character"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        style={{ width: "0px", height: "0px", visibility: "hidden" }}
+      ></model-viewer>
     </div>
   );
 }
