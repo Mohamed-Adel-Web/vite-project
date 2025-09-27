@@ -1,36 +1,31 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { OrbitControls, Environment } from "@react-three/drei";
 import { Suspense } from "react";
+import { XR, ARButton, createXRStore } from "@react-three/xr";
 
-function VodafoneCharacter(props: any) {
-  const { scene } = useGLTF("/vodafoneCharacters.glb"); // model in public/
-  return (
-    <primitive
-      object={scene}
-      {...props}
-      onClick={(e) => {
-        e.stopPropagation();
-        alert("🎉 You clicked the character!");
-      }}
-    />
-  );
-}
+import { ModelViewer } from "./components/ModelViewer";
+import vodaChar from "./assets/vodafoneCharacters.glb";
 
 export default function App() {
+  const store = createXRStore();
+
   return (
     <div className="w-full h-screen bg-black">
+      <ARButton store={store} />
+
       <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} />
+        <XR store={store}>
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[5, 5, 5]} />
 
-        <Suspense fallback={null}>
-          <VodafoneCharacter scale={2} />
+          <Suspense fallback={null}>
+            <ModelViewer path={vodaChar} />
+            {/* 🌍 Environment lighting (studio HDR) */}
+            <Environment preset="sunset" />
+          </Suspense>
 
-          {/* 🌍 Environment lighting (studio HDR) */}
-          <Environment preset="sunset" background />
-        </Suspense>
-
-        <OrbitControls />
+          <OrbitControls />
+        </XR>
       </Canvas>
     </div>
   );
