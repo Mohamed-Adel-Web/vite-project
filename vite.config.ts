@@ -10,5 +10,27 @@ export default defineConfig({
       },
     }),
   ],
-  assetsInclude: ["**/*.glb"], // ✅ This line allows .glb imports
+  assetsInclude: ["**/*.glb", "**/*.wasm"],
+  server: {
+    headers: {
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    },
+  },
+  optimizeDeps: {
+    exclude: ["@zappar/zappar-react-three-fiber", "@zappar/zappar-threejs"],
+    include: ["use-sync-external-store/shim/with-selector"],
+  },
+  resolve: {
+    alias: {
+      "ua-parser-js": "ua-parser-js/dist/ua-parser.min.js",
+    },
+    dedupe: [
+      "react",
+      "react-dom",
+      "three",
+      "@react-three/fiber",
+      "use-sync-external-store",
+    ],
+  },
 });

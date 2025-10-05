@@ -10,14 +10,20 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "resolutions": {
+    "ua-parser-js": "^1.0.0"
+  },
   "dependencies": {
     "@google/model-viewer": "^4.1.0",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
     "@react-three/xr": "^6.6.26",
+    "@zappar/zappar": "^4.0.0",
+    "@zappar/zappar-react-three-fiber": "^4.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "ua-parser-js": "^1.0.41"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

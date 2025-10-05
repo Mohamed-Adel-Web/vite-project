@@ -1,38 +1,77 @@
-import "@google/model-viewer";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import {
+  ZapparCanvas,
+  ZapparCamera,
+  InstantTracker,
+} from "@zappar/zappar-react-three-fiber";
+import { useThree } from "@react-three/fiber";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import VodaModel from "./assets/vodafoneCharacters.glb";
-import { useRef } from "react";
+
+function Model() {
+  const modelRef = useRef<THREE.Group>(null);
+  const { gl, camera, scene } = useThree();
+
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    loader.load(VodaModel, (gltf) => {
+      modelRef.current?.add(gltf.scene);
+    });
+  }, []);
+
+  useEffect(() => {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const handleClick = (event: MouseEvent) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      if (intersects.length > 0) {
+        alert("👋 Hi! You tapped the character!");
+      }
+    };
+
+    gl.domElement.addEventListener("click", handleClick);
+    return () => gl.domElement.removeEventListener("click", handleClick);
+  }, [gl, camera, scene]);
+
+  return <group ref={modelRef} scale={[0.5, 0.5, 0.5]} />;
+}
 
 export default function App() {
-  const modelRef = useRef<any>(null);
+  const [start, setStart] = useState(false);
 
-  const startAR = () => {
-    if (modelRef.current) {
-      modelRef.current.activateAR(); // 🚀 directly opens AR mode
-    }
-  };
+  if (!start) {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
+        <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+        <button
+          onClick={() => setStart(true)}
+          className="px-6 py-3 bg-green-500 rounded-lg"
+        >
+          Tap to Start AR
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
-      <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
+    <div className="w-full h-screen">
+      <ZapparCanvas>
+        <ZapparCamera />
+        <ambientLight intensity={1} />
+        <directionalLight position={[1, 1, 1]} intensity={0.6} />
 
-      <button
-        onClick={startAR}
-        className="px-6 py-3 bg-green-500 rounded-lg mb-6"
-      >
-        Start AR
-      </button>
-
-      {/* Hidden model-viewer (only used to trigger AR) */}
-      <model-viewer
-        ref={modelRef}
-        src={VodaModel}
-        ios-src="./assets/vodafoneCharacters.usdz"
-        alt="Vodafone Character"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        style={{ width: "0px", height: "0px", visibility: "hidden" }}
-      ></model-viewer>
+        <InstantTracker placementMode placement>
+          <Model />
+        </InstantTracker>
+      </ZapparCanvas>
     </div>
   );
 }
