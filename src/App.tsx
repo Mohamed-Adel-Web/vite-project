@@ -178,9 +178,7 @@ export default function App() {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
         <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
-        <p className="text-sm mb-4 text-gray-400">
-          👆 Drag to rotate • 🤏 Pinch to zoom • ⚡ Double tap to reset
-        </p>
+
         <button
           onClick={() => setStart(true)}
           className="px-6 py-3 bg-green-500 rounded-lg"
@@ -192,7 +190,13 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-screen relative">
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        position: "relative",
+      }}
+    >
       <ZapparCanvas>
         <ZapparCamera />
 
