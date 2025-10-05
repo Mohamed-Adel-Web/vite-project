@@ -26,6 +26,7 @@ export default function App() {
       <model-viewer
         ref={modelRef}
         src={VodaModel}
+        ios-src="./assets/vodafoneCharacters.usdz"
         alt="Vodafone Character"
         ar
         ar-modes="webxr scene-viewer quick-look"
