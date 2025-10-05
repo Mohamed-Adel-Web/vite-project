@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import {
-  ZapparCanvas,
-  ZapparCamera,
-  InstantTracker,
-} from "@zappar/zappar-react-three-fiber";
-import { useThree, useFrame } from "@react-three/fiber";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Environment } from "@react-three/drei";
 import VodaModel from "./assets/vodafoneCharacters.glb";
+// Replace this with your actual model path
 
 function Model() {
   const modelRef = useRef<THREE.Group>(null);
@@ -231,8 +227,66 @@ function Model() {
       ref={modelRef}
       scale={[scale, scale, scale]}
       rotation={[0, rotation, 0]}
+      position={[0, 0, -2]}
     />
   );
+}
+
+function ARCamera() {
+  const { camera } = useThree();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    // Set up camera
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = 75;
+      camera.near = 0.1;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+    }
+
+    // Request camera access for AR background
+    navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      })
+      .then((stream) => {
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        video.play();
+        videoRef.current = video;
+
+        // Create video texture for AR background
+        const videoTexture = new THREE.VideoTexture(video);
+        videoTexture.minFilter = THREE.LinearFilter;
+        videoTexture.magFilter = THREE.LinearFilter;
+
+        const videoMaterial = new THREE.MeshBasicMaterial({
+          map: videoTexture,
+          side: THREE.BackSide,
+        });
+
+        const videoGeometry = new THREE.SphereGeometry(500, 60, 40);
+        const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
+        camera.add(videoMesh);
+      })
+      .catch((err) => {
+        console.error("Camera access denied:", err);
+      });
+
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+    };
+  }, [camera]);
+
+  return null;
 }
 
 export default function App() {
@@ -247,7 +301,7 @@ export default function App() {
         </p>
         <button
           onClick={() => setStart(true)}
-          className="px-6 py-3 bg-green-500 rounded-lg"
+          className="px-6 py-3 bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
         >
           Tap to Start AR
         </button>
@@ -257,8 +311,8 @@ export default function App() {
 
   return (
     <div style={{ width: "100%", height: "100vh" }}>
-      <ZapparCanvas>
-        <ZapparCamera />
+      <Canvas camera={{ position: [0, 0, 0], fov: 75 }} gl={{ alpha: true }}>
+        <ARCamera />
 
         <ambientLight intensity={0.8} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
@@ -267,14 +321,13 @@ export default function App() {
 
         <Environment preset="sunset" />
 
-        <InstantTracker placementMode="placement">
-          <Model />
-        </InstantTracker>
-      </ZapparCanvas>
+        <Model />
+      </Canvas>
 
       {/* Control hints */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm">
-        👆 Drag to rotate • 🤏 Pinch to zoom • 👆 Tap to say hi
+        👆 Drag to rotate • 🤏 Pinch to zoom • 👆 Tap to say hi • ✌️ Double tap
+        to reset
       </div>
     </div>
   );

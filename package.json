@@ -20,9 +20,10 @@
     "@react-three/xr": "^6.6.26",
     "@zappar/zappar": "^4.0.0",
     "@zappar/zappar-react-three-fiber": "^4.0.0",
+    "node-fetch": "^3.3.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.180.0",
+    "three": "^0.168.0",
     "ua-parser-js": "^1.0.41"
   },
   "devDependencies": {
