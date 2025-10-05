@@ -8,6 +8,7 @@ import {
 import { useThree } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import VodaModel from "./assets/vodafoneCharacters.glb";
+import { Environment } from "@react-three/drei";
 
 function Model() {
   const modelRef = useRef<THREE.Group>(null);
@@ -62,11 +63,19 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-screen">
+    <div
+      style={{
+        width: "100vh",
+        height: "100vh",
+      }}
+    >
       <ZapparCanvas>
         <ZapparCamera />
-        <ambientLight intensity={1} />
-        <directionalLight position={[1, 1, 1]} intensity={0.6} />
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
+        <directionalLight position={[-5, 5, -5]} intensity={0.5} />
+        <pointLight position={[0, 5, 0]} intensity={0.5} />
+        <Environment preset="sunset" />
 
         <InstantTracker placementMode placement>
           <Model />
