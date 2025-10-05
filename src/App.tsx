@@ -256,18 +256,18 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-screen relative">
+    <div style={{ width: "100%", height: "100vh" }}>
       <ZapparCanvas>
         <ZapparCamera />
 
         <ambientLight intensity={0.8} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-        <directionalLight position={[-5, 5, -5]} intensity={0.5} />
+        <directionalLight args={[0xffffff, 0.5]} position={[-5, 5, -5]} />
         <pointLight position={[0, 5, 0]} intensity={0.5} />
 
         <Environment preset="sunset" />
 
-        <InstantTracker placementMode>
+        <InstantTracker placementMode="placement">
           <Model />
         </InstantTracker>
       </ZapparCanvas>
