@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Environment } from "@react-three/drei";
+import vodaModel from "./assets/vodafoneCharacters.glb";
 
 function Model() {
   const modelRef = useRef<THREE.Group>(null);
@@ -69,10 +70,9 @@ function Model() {
     const loader = new GLTFLoader();
 
     // Try to load the Vodafone model - if it fails, create a cube placeholder
-    const modelPath = "./assets/vodafoneCharacters.glb";
 
     loader.load(
-      modelPath,
+      vodaModel,
       (gltf) => {
         modelRef.current?.add(gltf.scene);
         gltf.scene.traverse((child) => {
