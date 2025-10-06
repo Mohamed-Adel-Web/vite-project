@@ -1,41 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <title>Vodafone AR with MindAR</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.4/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
       }
+      #instructions {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 15px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+        text-align: center;
+        max-width: 90%;
+      }
+      #instructions strong {
+        font-size: 16px;
+        color: #00d4ff;
+      }
+      #download-marker {
+        margin-top: 15px;
+        padding: 10px 20px;
+        background: #00d4ff;
+        color: black;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
-    <!-- MindAR scene -->
+    <div id="instructions">
+      <div><strong>📱 AR Marker Mode</strong></div>
+      <div style="margin-top: 10px">Point your camera at the Hiro marker</div>
+      <div style="margin-top: 5px; font-size: 12px">
+        (The model will appear on the marker)
+      </div>
+      <button
+        id="download-marker"
+        onclick="window.open('https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png', '_blank')"
+      >
+        📥 Download Hiro Marker
+      </button>
+    </div>
+
     <a-scene
-      mindar-image="imageTargetSrc: ./vodafone-target.mind;"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
       vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: true"
-      renderer="colorManagement: true, physicallyCorrectLights"
+      renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
     >
-      <!-- Camera for MindAR -->
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-      <!-- Trackable image target -->
-      <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Marker anchor - model will appear on this marker -->
+      <a-marker
+        preset="hiro"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+      >
+        <!-- 3D Model anchored to marker -->
         <a-entity
+          id="model"
           gltf-model="./vodafoneCharacters.glb"
-          scale="0.5 0.5 0.5"
+          scale="1.5 1.5 1.5"
           position="0 0 0"
-          rotation="0 180 0"
+          rotation="-90 0 0"
         ></a-entity>
-      </a-entity>
+      </a-marker>
 
-      <!-- Lights -->
-      <a-light type="ambient" intensity="1"></a-light>
-      <a-light type="directional" position="1 1 1" intensity="0.8"></a-light>
+      <!-- Enhanced lighting for AR -->
+      <a-light type="ambient" color="#ffffff" intensity="2"></a-light>
+      <a-light
+        type="directional"
+        intensity="1.2"
+        position="1 2 1"
+        color="#ffffff"
+      ></a-light>
+      <a-light
+        type="directional"
+        intensity="0.8"
+        position="-1 1 -1"
+        color="#ffffff"
+      ></a-light>
+
+      <!-- Camera -->
+      <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+      const model = document.querySelector("#model");
+      const instructions = document.querySelector(
+        "#instructions div:nth-child(2)"
+      );
+
+      model.addEventListener("model-loaded", () => {
+        console.log("✅ Model loaded - Point camera at Hiro marker!");
+        instructions.textContent = "Model loaded! Point at marker";
+        instructions.style.color = "#00ff00";
+      });
+
+      model.addEventListener("model-error", (error) => {
+        console.error("❌ Error loading model:", error);
+        instructions.textContent = "Error loading model!";
+        instructions.style.color = "#ff0000";
+      });
+
+      // Hide instructions after 10 seconds
+      setTimeout(() => {
+        const instructionsDiv = document.querySelector("#instructions");
+        instructionsDiv.style.transition = "opacity 1s";
+        instructionsDiv.style.opacity = "0";
+        setTimeout(() => (instructionsDiv.style.display = "none"), 1000);
+      }, 10000);
+    </script>
   </body>
 </html>
