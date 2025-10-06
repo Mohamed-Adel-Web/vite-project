@@ -7,7 +7,9 @@
       body {
         margin: 0;
         overflow: hidden;
+        font-family: Arial, sans-serif;
       }
+
       #controls {
         position: absolute;
         top: 20px;
@@ -17,11 +19,26 @@
         color: white;
         padding: 15px 25px;
         border-radius: 10px;
-        font-family: Arial, sans-serif;
         font-size: 14px;
         z-index: 1000;
         text-align: center;
+        max-width: 80%;
       }
+
+      #click-indicator {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+      }
+
       a-scene canvas {
         cursor: pointer;
       }
@@ -30,8 +47,10 @@
   <body>
     <div id="controls">
       <div><strong>📱 AR Mode</strong></div>
-      <div>Model is fixed in space - tap it to see alert!</div>
+      <div>Point at the model and <strong>CLICK/TAP</strong> to see alert!</div>
     </div>
+
+    <div id="click-indicator">Click detected!</div>
 
     <a-scene
       embedded
@@ -79,11 +98,11 @@
         wasd-controls="acceleration: 20"
         position="0 1.6 0"
       >
+        <!-- Cursor without fuse - requires manual click -->
         <a-cursor
           id="cursor"
-          fuse="true"
-          fuse-timeout="100"
           raycaster="objects: .clickable"
+          animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
         ></a-cursor>
       </a-entity>
     </a-scene>
@@ -93,13 +112,19 @@
       document.querySelector("a-scene").addEventListener("loaded", function () {
         const model = document.querySelector("#model");
         const cursor = document.querySelector("#cursor");
+        const clickIndicator = document.querySelector("#click-indicator");
 
         // Set up model click handler
         model.addEventListener("click", function () {
+          console.log("Model clicked!");
           alert("hi");
-        });
 
-        // Also handle fusing (for mobile)
+          // Show visual feedback
+          clickIndicator.style.display = "block";
+          setTimeout(() => {
+            clickIndicator.style.display = "none";
+          }, 1000);
+        });
 
         // Log when model is loaded
         model.addEventListener("model-loaded", function () {
@@ -107,13 +132,24 @@
 
           // Make sure the model is interactive
           model.setAttribute("class", "clickable");
+
+          // Update instructions
+          document.querySelector("#controls div:last-child").textContent =
+            "Point at the model and CLICK/TAP to see alert!";
         });
 
         // Handle model loading errors
         model.addEventListener("model-error", function (error) {
           console.error("Error loading model:", error);
           document.querySelector("#controls div:last-child").textContent =
-            "Error loading model!";
+            "Error loading model! Check if vodafoneCharacters.glb exists.";
+        });
+
+        // Add manual click detection for the entire scene
+        const scene = document.querySelector("a-scene");
+        scene.addEventListener("click", function (evt) {
+          // This will fire for any click in the scene
+          console.log("Scene clicked", evt.detail);
         });
       });
     </script>
