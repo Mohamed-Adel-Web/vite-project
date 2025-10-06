@@ -3,11 +3,11 @@ import * as THREE from "three";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Environment } from "@react-three/drei";
-import VodaModel from "./assets/vodafoneCharacters.glb";
 
 function Model() {
   const modelRef = useRef<THREE.Group>(null);
   const { gl, camera, scene } = useThree();
+  const gyroRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
   // State for controls
   const [scale, setScale] = useState(0.5);
@@ -32,23 +32,66 @@ function Model() {
     ) {
       setScale((prev) => prev + (targetScale - prev) * 0.1);
     }
+
+    // Update camera rotation based on device orientation
+    if (gyroRef.current.beta !== 0 || gyroRef.current.gamma !== 0) {
+      const beta = (gyroRef.current.beta * Math.PI) / 180;
+      const gamma = (gyroRef.current.gamma * Math.PI) / 180;
+      const alpha = (gyroRef.current.alpha * Math.PI) / 180;
+
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = alpha;
+      camera.rotation.x = beta - Math.PI / 2;
+      camera.rotation.z = -gamma;
+    }
   });
 
   useEffect(() => {
     const loader = new GLTFLoader();
-    loader.load(VodaModel, (gltf) => {
-      modelRef.current?.add(gltf.scene);
 
-      gltf.scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (child.material) {
-            child.material.needsUpdate = true;
-          }
-        }
-      });
+    // Create a simple cube as placeholder since we don't have the model file
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xe60000,
+      metalness: 0.5,
+      roughness: 0.5,
     });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    modelRef.current?.add(cube);
+
+    // Device orientation for gyroscope
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha !== null && e.beta !== null && e.gamma !== null) {
+        gyroRef.current = {
+          alpha: e.alpha,
+          beta: e.beta,
+          gamma: e.gamma,
+        };
+      }
+    };
+
+    // Request permission for iOS 13+
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof (DeviceOrientationEvent as any).requestPermission === "function"
+    ) {
+      (DeviceOrientationEvent as any)
+        .requestPermission()
+        .then((response: string) => {
+          if (response === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+          }
+        })
+        .catch(console.error);
+    } else {
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
+
+    return () => {
+      window.removeEventListener("deviceorientation", handleOrientation);
+    };
   }, []);
 
   // Handle touch/mouse controls
@@ -226,7 +269,7 @@ function Model() {
       ref={modelRef}
       scale={[scale, scale, scale]}
       rotation={[0, rotation, 0]}
-      position={[0, 0, -2]}
+      position={[0, -1, -5]}
     />
   );
 }
@@ -274,14 +317,47 @@ export default function App() {
 
   if (!start) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-black text-white">
-        <h1 className="text-3xl mb-6">🎮 AR Treasure Hunt</h1>
-        <p className="text-sm mb-4 text-gray-400">
+      <div
+        style={{
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "black",
+          color: "white",
+        }}
+      >
+        <h1 style={{ fontSize: "1.875rem", marginBottom: "1.5rem" }}>
+          🎮 AR Treasure Hunt
+        </h1>
+        <p
+          style={{
+            fontSize: "0.875rem",
+            marginBottom: "1rem",
+            color: "#9ca3af",
+          }}
+        >
           👆 Drag to rotate • 🤏 Pinch to zoom (auto-resets) • 👆 Tap to say hi
         </p>
         <button
           onClick={() => setStart(true)}
-          className="px-6 py-3 bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+          style={{
+            padding: "0.75rem 1.5rem",
+            backgroundColor: "#10b981",
+            borderRadius: "0.5rem",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            fontSize: "1rem",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.backgroundColor = "#059669")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.backgroundColor = "#10b981")
+          }
         >
           Tap to Start AR
         </button>
@@ -337,8 +413,18 @@ export default function App() {
 
       {/* Control hints */}
       <div
-        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm"
-        style={{ zIndex: 2 }}
+        style={{
+          position: "absolute",
+          bottom: "1rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          color: "white",
+          padding: "0.5rem 1rem",
+          borderRadius: "0.5rem",
+          fontSize: "0.875rem",
+          zIndex: 2,
+        }}
       >
         {cameraReady ? (
           <>
