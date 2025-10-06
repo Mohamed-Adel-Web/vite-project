@@ -8,6 +8,63 @@
         margin: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #start-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        text-align: center;
+        color: white;
+        transition: opacity 0.5s ease;
+      }
+
+      #start-screen h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      #start-screen p {
+        font-size: 1.2rem;
+        max-width: 80%;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+
+      #start-button {
+        background: #ff5722;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2rem;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      #start-button:hover {
+        background: #ff7043;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      #start-button:active {
+        transform: translateY(1px);
       }
 
       #controls {
@@ -23,6 +80,7 @@
         z-index: 1000;
         text-align: center;
         max-width: 80%;
+        display: none;
       }
 
       #click-indicator {
@@ -39,15 +97,60 @@
         display: none;
       }
 
+      a-scene {
+        display: none;
+      }
+
       a-scene canvas {
         cursor: pointer;
+      }
+
+      #loading {
+        display: none;
+        color: white;
+        font-size: 1.2rem;
+        margin-top: 20px;
+      }
+
+      .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #ff5722;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
   <body>
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <h1>Welcome to AR Experience</h1>
+      <p>
+        Experience Vodafone characters in Augmented Reality. Click the button
+        below to start the experience and allow camera access when prompted.
+      </p>
+      <button id="start-button">Start AR Experience</button>
+      <div id="loading">
+        <div class="loader"></div>
+        <p>Loading AR Experience...</p>
+      </div>
+    </div>
+
+    <!-- AR Scene (initially hidden) -->
     <div id="controls">
-      <div><strong>📱 AR Mode</strong></div>
-      <div>Point at the model and <strong>CLICK/TAP</strong> to see alert!</div>
+      <div><strong>Start find Voda</strong></div>
+      <div>Point at the model and <strong>CLICK/TAP</strong> to see win!</div>
     </div>
 
     <div id="click-indicator">Click detected!</div>
@@ -101,6 +204,7 @@
         <!-- Cursor without fuse - requires manual click -->
         <a-cursor
           id="cursor"
+          visible="false"
           raycaster="objects: .clickable"
           animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
         ></a-cursor>
@@ -108,8 +212,36 @@
     </a-scene>
 
     <script>
-      // Wait for the scene to load
-      document.querySelector("a-scene").addEventListener("loaded", function () {
+      // Get DOM elements
+      const startScreen = document.getElementById("start-screen");
+      const startButton = document.getElementById("start-button");
+      const loading = document.getElementById("loading");
+      const scene = document.querySelector("a-scene");
+      const controls = document.getElementById("controls");
+
+      // Start button click handler
+      startButton.addEventListener("click", function () {
+        // Show loading indicator
+        startButton.style.display = "none";
+        loading.style.display = "block";
+
+        // Wait a moment to show loading, then start the AR experience
+        setTimeout(function () {
+          // Hide start screen and show AR scene
+          startScreen.style.opacity = "0";
+          setTimeout(function () {
+            startScreen.style.display = "none";
+            scene.style.display = "block";
+            controls.style.display = "block";
+          }, 500);
+
+          // Initialize AR experience
+          initARExperience();
+        }, 1500);
+      });
+
+      // Initialize AR experience
+      function initARExperience() {
         const model = document.querySelector("#model");
         const cursor = document.querySelector("#cursor");
         const clickIndicator = document.querySelector("#click-indicator");
@@ -146,12 +278,11 @@
         });
 
         // Add manual click detection for the entire scene
-        const scene = document.querySelector("a-scene");
         scene.addEventListener("click", function (evt) {
           // This will fire for any click in the scene
           console.log("Scene clicked", evt.detail);
         });
-      });
+      }
     </script>
   </body>
 </html>
