@@ -8,6 +8,9 @@
         margin: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
       }
 
       #controls {
@@ -39,24 +42,62 @@
         display: none;
       }
 
+      #permission-message {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      #permission-message button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 6px;
+        margin-top: 20px;
+        cursor: pointer;
+      }
+
       a-scene canvas {
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
       }
     </style>
   </head>
   <body>
     <div id="controls">
       <div><strong>📱 AR Mode</strong></div>
-      <div>Point at the model and <strong>CLICK/TAP</strong> to see alert!</div>
+      <div>Point at the model and CLICK/TAP to see alert!</div>
     </div>
 
     <div id="click-indicator">Click detected!</div>
+
+    <div id="permission-message">
+      <h2>Camera Access Required</h2>
+      <p>This AR experience needs camera access to work.</p>
+      <p>Please allow camera permissions when prompted.</p>
+      <button id="start-ar">Start AR Experience</button>
+    </div>
 
     <a-scene
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
       vr-mode-ui="enabled: false"
       renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
+      gesture-detector
     >
       <!-- World root to anchor the model -->
       <a-entity id="world-root" position="0 0 0">
@@ -94,8 +135,8 @@
       <!-- Camera with cursor for interaction -->
       <a-entity
         camera
-        look-controls
-        wasd-controls="acceleration: 20"
+        look-controls="touchEnabled: false"
+        wasd-controls="enabled: false"
         position="0 1.6 0"
       >
         <!-- Cursor without fuse - requires manual click -->
@@ -108,48 +149,119 @@
     </a-scene>
 
     <script>
-      // Wait for the scene to load
-      document.querySelector("a-scene").addEventListener("loaded", function () {
-        const model = document.querySelector("#model");
-        const cursor = document.querySelector("#cursor");
-        const clickIndicator = document.querySelector("#click-indicator");
+      // Safari-specific fixes
+      const isSafari = /^((?!chrome|android).)*safari/i.test(
+        navigator.userAgent
+      );
 
-        // Set up model click handler
-        model.addEventListener("click", function () {
-          console.log("Model clicked!");
-          alert("hi");
-
-          // Show visual feedback
-          clickIndicator.style.display = "block";
-          setTimeout(() => {
-            clickIndicator.style.display = "none";
-          }, 1000);
-        });
-
-        // Log when model is loaded
-        model.addEventListener("model-loaded", function () {
-          console.log("Model loaded successfully");
-
-          // Make sure the model is interactive
-          model.setAttribute("class", "clickable");
-
-          // Update instructions
-          document.querySelector("#controls div:last-child").textContent =
-            "Point at the model and CLICK/TAP to see alert!";
-        });
-
-        // Handle model loading errors
-        model.addEventListener("model-error", function (error) {
-          console.error("Error loading model:", error);
-          document.querySelector("#controls div:last-child").textContent =
-            "Error loading model! Check if vodafoneCharacters.glb exists.";
-        });
-
-        // Add manual click detection for the entire scene
+      // Handle camera permissions and initialization
+      document.addEventListener("DOMContentLoaded", function () {
+        const permissionMessage = document.getElementById("permission-message");
+        const startButton = document.getElementById("start-ar");
         const scene = document.querySelector("a-scene");
-        scene.addEventListener("click", function (evt) {
-          // This will fire for any click in the scene
-          console.log("Scene clicked", evt.detail);
+
+        // For Safari, we need to handle permissions differently
+        if (isSafari) {
+          // In Safari, we need to wait for user interaction before starting the camera
+          startButton.addEventListener("click", function () {
+            permissionMessage.style.display = "none";
+
+            // Add a small delay to ensure the click event is processed
+            setTimeout(() => {
+              // Reinitialize the AR scene
+              if (scene.hasLoaded) {
+                scene.enterVR();
+              }
+            }, 100);
+          });
+        } else {
+          // For other browsers, just hide the message
+          permissionMessage.style.display = "none";
+        }
+
+        // Set up scene after it loads
+        scene.addEventListener("loaded", function () {
+          const model = document.querySelector("#model");
+          const cursor = document.querySelector("#cursor");
+          const clickIndicator = document.querySelector("#click-indicator");
+
+          // Safari-specific event handling
+          if (isSafari) {
+            // Prevent default behavior on touch events to avoid camera issues
+            const canvas = scene.canvas;
+
+            canvas.addEventListener(
+              "touchstart",
+              function (e) {
+                e.preventDefault();
+                // Handle model interaction manually
+                handleModelInteraction();
+              },
+              { passive: false }
+            );
+
+            canvas.addEventListener(
+              "touchend",
+              function (e) {
+                e.preventDefault();
+              },
+              { passive: false }
+            );
+
+            // Also handle mouse events for desktop Safari
+            canvas.addEventListener("mousedown", function (e) {
+              e.preventDefault();
+              handleModelInteraction();
+            });
+          }
+
+          // Set up model click handler for non-Safari browsers
+          model.addEventListener("click", function () {
+            handleModelClick();
+          });
+
+          // Function to handle model clicks
+          function handleModelClick() {
+            console.log("Model clicked!");
+            alert("hi");
+
+            // Show visual feedback
+            clickIndicator.style.display = "block";
+            setTimeout(() => {
+              clickIndicator.style.display = "none";
+            }, 1000);
+          }
+
+          // Function to handle model interaction in Safari
+          function handleModelInteraction() {
+            // Get the cursor's current intersection
+            const cursorEl = document.querySelector("#cursor");
+            const intersectedEl = cursorEl.components.cursor.intersectedEl;
+
+            // Check if the intersected element is our model
+            if (intersectedEl && intersectedEl.id === "model") {
+              handleModelClick();
+            }
+          }
+
+          // Log when model is loaded
+          model.addEventListener("model-loaded", function () {
+            console.log("Model loaded successfully");
+
+            // Make sure the model is interactive
+            model.setAttribute("class", "clickable");
+
+            // Update instructions
+            document.querySelector("#controls div:last-child").textContent =
+              "Point at the model and CLICK/TAP to see alert!";
+          });
+
+          // Handle model loading errors
+          model.addEventListener("model-error", function (error) {
+            console.error("Error loading model:", error);
+            document.querySelector("#controls div:last-child").textContent =
+              "Error loading model! Check if vodafoneCharacters.glb exists.";
+          });
         });
       });
     </script>
