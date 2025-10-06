@@ -149,8 +149,8 @@
 
     <!-- AR Scene (initially hidden) -->
     <div id="controls">
-      <div><strong>Start find Voda</strong></div>
-      <div>Point at the model and <strong>CLICK/TAP</strong> to see win!</div>
+      <div><strong>📱 AR Mode</strong></div>
+      <div>Point at the model and <strong>CLICK/TAP</strong> to see alert!</div>
     </div>
 
     <div id="click-indicator">Click detected!</div>
@@ -204,7 +204,6 @@
         <!-- Cursor without fuse - requires manual click -->
         <a-cursor
           id="cursor"
-          visible="false"
           raycaster="objects: .clickable"
           animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
         ></a-cursor>
