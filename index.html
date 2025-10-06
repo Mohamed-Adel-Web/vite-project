@@ -3,83 +3,6 @@
   <head>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
-    <script>
-      // Component to anchor model in world space
-      AFRAME.registerComponent("world-anchor", {
-        init: function () {
-          this.worldPosition = new THREE.Vector3();
-          this.el.object3D.getWorldPosition(this.worldPosition);
-
-          setTimeout(() => {
-            this.el.object3D.position.copy(this.worldPosition);
-            this.el.object3D.matrixAutoUpdate = false;
-            this.el.object3D.updateMatrix();
-          }, 100);
-        },
-      });
-
-      // Enhanced clickable component for AR
-      AFRAME.registerComponent("clickable", {
-        init: function () {
-          const el = this.el;
-
-          // Mouse/touch event handlers
-          const handleClick = (evt) => {
-            alert("hi");
-          };
-
-          // Add multiple event listeners for better compatibility
-          el.addEventListener("click", handleClick);
-          el.addEventListener("touchstart", handleClick);
-
-          // Also try mousedown for desktop testing
-          el.addEventListener("mousedown", handleClick);
-
-          // Log when component is initialized
-          console.log("Clickable component initialized on:", el);
-        },
-      });
-
-      // Raycaster setup after scene loads
-      document.addEventListener("DOMContentLoaded", () => {
-        const scene = document.querySelector("a-scene");
-
-        scene.addEventListener("loaded", () => {
-          console.log("Scene loaded, setting up click detection");
-
-          const model = document.querySelector("#model");
-          const camera = document.querySelector("[camera]");
-
-          // Create raycaster for click detection
-          const raycaster = new THREE.Raycaster();
-          const mouse = new THREE.Vector2();
-
-          // Handle clicks on canvas
-          const canvas = scene.canvas;
-
-          const onCanvasClick = (event) => {
-            // Calculate mouse position in normalized device coordinates
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-            // Update raycaster
-            raycaster.setFromCamera(mouse, camera.object3D);
-
-            // Check for intersections with model
-            const intersects = raycaster.intersectObject(model.object3D, true);
-
-            if (intersects.length > 0) {
-              console.log("Model clicked!");
-              alert("hi");
-            }
-          };
-
-          canvas.addEventListener("click", onCanvasClick);
-          canvas.addEventListener("touchend", onCanvasClick);
-        });
-      });
-    </script>
     <style>
       body {
         margin: 0;
@@ -116,6 +39,7 @@
       vr-mode-ui="enabled: false"
       renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
     >
+      <!-- World root to anchor the model -->
       <a-entity id="world-root" position="0 0 0">
         <a-entity
           id="model"
@@ -123,11 +47,11 @@
           scale="3 3 3"
           position="0 -1 -4"
           rotation="0 0 0"
-          clickable
           class="clickable"
         ></a-entity>
       </a-entity>
 
+      <!-- Lighting -->
       <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
       <a-light
         type="directional"
@@ -148,29 +72,52 @@
         groundColor="#888888"
       ></a-light>
 
+      <!-- Camera with cursor for interaction -->
       <a-entity
         camera
         look-controls
         wasd-controls="acceleration: 20"
         position="0 1.6 0"
-      ></a-entity>
+      >
+        <a-cursor
+          id="cursor"
+          fuse="true"
+          fuse-timeout="100"
+          raycaster="objects: .clickable"
+        ></a-cursor>
+      </a-entity>
     </a-scene>
 
     <script>
-      const model = document.querySelector("#model");
+      // Wait for the scene to load
+      document.querySelector("a-scene").addEventListener("loaded", function () {
+        const model = document.querySelector("#model");
+        const cursor = document.querySelector("#cursor");
 
-      model.addEventListener("model-loaded", () => {
-        console.log("Model loaded successfully - ready for interaction");
+        // Set up model click handler
+        model.addEventListener("click", function () {
+          alert("hi");
+        });
 
-        const worldRoot = document.querySelector("#world-root");
-        worldRoot.object3D.matrixAutoUpdate = false;
-        worldRoot.object3D.updateMatrix();
-      });
+        // Also handle fusing (for mobile)
+        model.addEventListener("fusing", function () {
+          alert("hi");
+        });
 
-      model.addEventListener("model-error", (error) => {
-        console.error("Error loading model:", error);
-        document.querySelector("#controls div:last-child").textContent =
-          "Error loading model!";
+        // Log when model is loaded
+        model.addEventListener("model-loaded", function () {
+          console.log("Model loaded successfully");
+
+          // Make sure the model is interactive
+          model.setAttribute("class", "clickable");
+        });
+
+        // Handle model loading errors
+        model.addEventListener("model-error", function (error) {
+          console.error("Error loading model:", error);
+          document.querySelector("#controls div:last-child").textContent =
+            "Error loading model!";
+        });
       });
     </script>
   </body>
