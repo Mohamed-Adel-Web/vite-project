@@ -7,11 +7,9 @@
       // Component to anchor model in world space
       AFRAME.registerComponent("world-anchor", {
         init: function () {
-          // Store initial world position
           this.worldPosition = new THREE.Vector3();
           this.el.object3D.getWorldPosition(this.worldPosition);
 
-          // Lock the position in world space
           setTimeout(() => {
             this.el.object3D.position.copy(this.worldPosition);
             this.el.object3D.matrixAutoUpdate = false;
@@ -19,12 +17,67 @@
           }, 100);
         },
       });
+
+      // Enhanced clickable component for AR
       AFRAME.registerComponent("clickable", {
         init: function () {
-          this.el.addEventListener("click", () => {
+          const el = this.el;
+
+          // Mouse/touch event handlers
+          const handleClick = (evt) => {
             alert("hi");
-          });
+          };
+
+          // Add multiple event listeners for better compatibility
+          el.addEventListener("click", handleClick);
+          el.addEventListener("touchstart", handleClick);
+
+          // Also try mousedown for desktop testing
+          el.addEventListener("mousedown", handleClick);
+
+          // Log when component is initialized
+          console.log("Clickable component initialized on:", el);
         },
+      });
+
+      // Raycaster setup after scene loads
+      document.addEventListener("DOMContentLoaded", () => {
+        const scene = document.querySelector("a-scene");
+
+        scene.addEventListener("loaded", () => {
+          console.log("Scene loaded, setting up click detection");
+
+          const model = document.querySelector("#model");
+          const camera = document.querySelector("[camera]");
+
+          // Create raycaster for click detection
+          const raycaster = new THREE.Raycaster();
+          const mouse = new THREE.Vector2();
+
+          // Handle clicks on canvas
+          const canvas = scene.canvas;
+
+          const onCanvasClick = (event) => {
+            // Calculate mouse position in normalized device coordinates
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Update raycaster
+            raycaster.setFromCamera(mouse, camera.object3D);
+
+            // Check for intersections with model
+            const intersects = raycaster.intersectObject(model.object3D, true);
+
+            if (intersects.length > 0) {
+              console.log("Model clicked!");
+              alert("hi");
+            }
+          };
+
+          canvas.addEventListener("click", onCanvasClick);
+          canvas.addEventListener("touchend", onCanvasClick);
+        });
       });
     </script>
     <style>
@@ -46,12 +99,15 @@
         z-index: 1000;
         text-align: center;
       }
+      a-scene canvas {
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
     <div id="controls">
       <div><strong>📱 AR Mode</strong></div>
-      <div>Model is fixed in space - move your camera to explore!</div>
+      <div>Model is fixed in space - tap it to see alert!</div>
     </div>
 
     <a-scene
@@ -60,9 +116,7 @@
       vr-mode-ui="enabled: false"
       renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
     >
-      <!-- Static entity that doesn't move with camera -->
       <a-entity id="world-root" position="0 0 0">
-        <!-- 3D Model - fixed in world space -->
         <a-entity
           id="model"
           gltf-model="./vodafoneCharacters.glb"
@@ -74,7 +128,6 @@
         ></a-entity>
       </a-entity>
 
-      <!-- Enhanced lighting -->
       <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
       <a-light
         type="directional"
@@ -95,7 +148,6 @@
         groundColor="#888888"
       ></a-light>
 
-      <!-- Camera that can move freely -->
       <a-entity
         camera
         look-controls
@@ -105,13 +157,11 @@
     </a-scene>
 
     <script>
-      // Ensure model loads with correct colors
       const model = document.querySelector("#model");
 
       model.addEventListener("model-loaded", () => {
-        console.log("Model loaded successfully - fixed in world space");
+        console.log("Model loaded successfully - ready for interaction");
 
-        // Force the model to stay in world coordinates
         const worldRoot = document.querySelector("#world-root");
         worldRoot.object3D.matrixAutoUpdate = false;
         worldRoot.object3D.updateMatrix();
