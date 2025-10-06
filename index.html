@@ -19,6 +19,13 @@
           }, 100);
         },
       });
+      AFRAME.registerComponent("clickable", {
+        init: function () {
+          this.el.addEventListener("click", () => {
+            alert("hi");
+          });
+        },
+      });
     </script>
     <style>
       body {
@@ -62,6 +69,8 @@
           scale="3 3 3"
           position="0 -1 -4"
           rotation="0 0 0"
+          clickable
+          class="clickable"
         ></a-entity>
       </a-entity>
 
