@@ -1,12 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vodafone AR</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body style="margin: 0; overflow: hidden">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <!-- Marker -->
+      <a-marker preset="hiro">
+        <!-- Your 3D Model -->
+        <a-entity
+          gltf-model="/vodafoneCharacters.glb"
+          scale="0.5 0.5 0.5"
+          position="0 0 0"
+        ></a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
   </body>
 </html>

@@ -20,6 +20,7 @@
     "@react-three/xr": "^6.6.26",
     "@zappar/zappar": "^4.0.0",
     "@zappar/zappar-react-three-fiber": "^4.0.0",
+    "ar.js": "^2.0.8",
     "node-fetch": "^3.3.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
