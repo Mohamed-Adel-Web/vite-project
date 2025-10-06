@@ -3,16 +3,21 @@ import * as THREE from "three";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Environment } from "@react-three/drei";
+import VodaModel from "./assets/vodafoneCharacters.glb";
 
-function Model() {
+function Model({
+  initialPosition,
+}: {
+  initialPosition: [number, number, number];
+}) {
   const modelRef = useRef<THREE.Group>(null);
   const { gl, camera, scene } = useThree();
-  const gyroRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
   // State for controls
   const [scale, setScale] = useState(0.5);
   const [targetScale, setTargetScale] = useState(0.5);
   const [rotation, setRotation] = useState(0);
+  const worldPosition = useRef(initialPosition);
 
   // Touch control state
   const touchState = useRef({
@@ -32,66 +37,23 @@ function Model() {
     ) {
       setScale((prev) => prev + (targetScale - prev) * 0.1);
     }
-
-    // Update camera rotation based on device orientation
-    if (gyroRef.current.beta !== 0 || gyroRef.current.gamma !== 0) {
-      const beta = (gyroRef.current.beta * Math.PI) / 180;
-      const gamma = (gyroRef.current.gamma * Math.PI) / 180;
-      const alpha = (gyroRef.current.alpha * Math.PI) / 180;
-
-      camera.rotation.order = "YXZ";
-      camera.rotation.y = alpha;
-      camera.rotation.x = beta - Math.PI / 2;
-      camera.rotation.z = -gamma;
-    }
   });
 
   useEffect(() => {
     const loader = new GLTFLoader();
+    loader.load(VodaModel, (gltf) => {
+      modelRef.current?.add(gltf.scene);
 
-    // Create a simple cube as placeholder since we don't have the model file
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xe60000,
-      metalness: 0.5,
-      roughness: 0.5,
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
-    modelRef.current?.add(cube);
-
-    // Device orientation for gyroscope
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      if (e.alpha !== null && e.beta !== null && e.gamma !== null) {
-        gyroRef.current = {
-          alpha: e.alpha,
-          beta: e.beta,
-          gamma: e.gamma,
-        };
-      }
-    };
-
-    // Request permission for iOS 13+
-    if (
-      typeof DeviceOrientationEvent !== "undefined" &&
-      typeof (DeviceOrientationEvent as any).requestPermission === "function"
-    ) {
-      (DeviceOrientationEvent as any)
-        .requestPermission()
-        .then((response: string) => {
-          if (response === "granted") {
-            window.addEventListener("deviceorientation", handleOrientation);
+      gltf.scene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material) {
+            child.material.needsUpdate = true;
           }
-        })
-        .catch(console.error);
-    } else {
-      window.addEventListener("deviceorientation", handleOrientation);
-    }
-
-    return () => {
-      window.removeEventListener("deviceorientation", handleOrientation);
-    };
+        }
+      });
+    });
   }, []);
 
   // Handle touch/mouse controls
@@ -269,18 +231,87 @@ function Model() {
       ref={modelRef}
       scale={[scale, scale, scale]}
       rotation={[0, rotation, 0]}
-      position={[0, -1, -5]}
+      position={worldPosition.current}
     />
   );
+}
+
+// Camera controller for device orientation
+function ARCamera() {
+  const { camera } = useThree();
+  const [hasOrientation, setHasOrientation] = useState(false);
+
+  useEffect(() => {
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+        setHasOrientation(true);
+
+        // Convert device orientation to camera rotation
+        const alpha = THREE.MathUtils.degToRad(event.alpha || 0); // Z axis
+        const beta = THREE.MathUtils.degToRad(event.beta || 0); // X axis
+        const gamma = THREE.MathUtils.degToRad(event.gamma || 0); // Y axis
+
+        // Apply rotation to camera
+        const euler = new THREE.Euler(beta, alpha, -gamma, "YXZ");
+        camera.quaternion.setFromEuler(euler);
+      }
+    };
+
+    // Request permission for iOS 13+
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof (DeviceOrientationEvent as any).requestPermission === "function"
+    ) {
+      (DeviceOrientationEvent as any)
+        .requestPermission()
+        .then((response: string) => {
+          if (response === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+          }
+        })
+        .catch(console.error);
+    } else {
+      // For Android and older iOS
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
+
+    return () => {
+      window.removeEventListener("deviceorientation", handleOrientation);
+    };
+  }, [camera]);
+
+  return null;
 }
 
 export default function App() {
   const [start, setStart] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [orientationPermission, setOrientationPermission] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const requestOrientationPermission = async () => {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof (DeviceOrientationEvent as any).requestPermission === "function"
+    ) {
+      try {
+        const response = await (
+          DeviceOrientationEvent as any
+        ).requestPermission();
+        setOrientationPermission(response === "granted");
+      } catch (error) {
+        console.error("Error requesting orientation permission:", error);
+      }
+    } else {
+      setOrientationPermission(true);
+    }
+  };
 
   useEffect(() => {
     if (start && videoRef.current) {
+      // Request orientation permission first (for iOS)
+      requestOrientationPermission();
+
       // Request camera access for AR background
       navigator.mediaDevices
         .getUserMedia({
@@ -315,48 +346,88 @@ export default function App() {
     }
   }, [start]);
 
+  const styles = {
+    startScreen: {
+      width: "100%",
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column" as const,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#000",
+      color: "#fff",
+    },
+    title: {
+      fontSize: "2rem",
+      marginBottom: "1.5rem",
+      fontWeight: "bold",
+    },
+    subtitle: {
+      fontSize: "0.875rem",
+      marginBottom: "1rem",
+      color: "#9ca3af",
+    },
+    startButton: {
+      padding: "0.75rem 1.5rem",
+      backgroundColor: "#22c55e",
+      color: "#fff",
+      border: "none",
+      borderRadius: "0.5rem",
+      fontSize: "1rem",
+      cursor: "pointer",
+      transition: "background-color 0.3s",
+    },
+    container: {
+      width: "100%",
+      height: "100vh",
+      position: "relative" as const,
+    },
+    video: {
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "cover" as const,
+      zIndex: 0,
+    },
+    canvasContainer: {
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      zIndex: 1,
+    },
+    controls: {
+      position: "absolute" as const,
+      bottom: "1rem",
+      left: "50%",
+      transform: "translateX(-50%)",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      color: "#fff",
+      padding: "0.5rem 1rem",
+      borderRadius: "0.5rem",
+      fontSize: "0.875rem",
+      zIndex: 2,
+    },
+  };
+
   if (!start) {
     return (
-      <div
-        style={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "black",
-          color: "white",
-        }}
-      >
-        <h1 style={{ fontSize: "1.875rem", marginBottom: "1.5rem" }}>
-          🎮 AR Treasure Hunt
-        </h1>
-        <p
-          style={{
-            fontSize: "0.875rem",
-            marginBottom: "1rem",
-            color: "#9ca3af",
-          }}
-        >
+      <div style={styles.startScreen}>
+        <h1 style={styles.title}>🎮 AR Treasure Hunt</h1>
+        <p style={styles.subtitle}>
           👆 Drag to rotate • 🤏 Pinch to zoom (auto-resets) • 👆 Tap to say hi
         </p>
         <button
           onClick={() => setStart(true)}
-          style={{
-            padding: "0.75rem 1.5rem",
-            backgroundColor: "#10b981",
-            borderRadius: "0.5rem",
-            border: "none",
-            color: "white",
-            cursor: "pointer",
-            fontSize: "1rem",
-          }}
+          style={styles.startButton}
           onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#059669")
+            (e.currentTarget.style.backgroundColor = "#16a34a")
           }
           onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "#10b981")
+            (e.currentTarget.style.backgroundColor = "#22c55e")
           }
         >
           Tap to Start AR
@@ -366,35 +437,12 @@ export default function App() {
   }
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+    <div style={styles.container}>
       {/* Camera video background */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: 0,
-        }}
-      />
+      <video ref={videoRef} autoPlay playsInline muted style={styles.video} />
 
       {/* Three.js Canvas overlay */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 1,
-        }}
-      >
+      <div style={styles.canvasContainer}>
         <Canvas
           camera={{ position: [0, 0, 0], fov: 75 }}
           gl={{ alpha: true, antialias: true }}
@@ -407,25 +455,13 @@ export default function App() {
 
           <Environment preset="sunset" />
 
-          <Model />
+          <ARCamera />
+          <Model initialPosition={[0, 0, -3]} />
         </Canvas>
       </div>
 
       {/* Control hints */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "1rem",
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          color: "white",
-          padding: "0.5rem 1rem",
-          borderRadius: "0.5rem",
-          fontSize: "0.875rem",
-          zIndex: 2,
-        }}
-      >
+      <div style={styles.controls}>
         {cameraReady ? (
           <>
             👆 Drag to rotate • 🤏 Pinch to zoom • 👆 Tap to say hi • ✌️ Double
