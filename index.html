@@ -88,7 +88,7 @@
         bottom: 30px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(255, 87, 34, 0.9);
         color: white;
         padding: 10px 20px;
         border-radius: 10px;
@@ -136,6 +136,12 @@
           transform: rotate(360deg);
         }
       }
+
+      /* Make canvas clickable */
+      canvas {
+        cursor: pointer !important;
+        pointer-events: auto !important;
+      }
     </style>
   </head>
   <body>
@@ -157,12 +163,10 @@
     <div id="ar-container">
       <div id="controls">
         <div><strong>📱 AR Mode</strong></div>
-        <div>
-          Point at the model and <strong>CLICK/TAP</strong> to see alert!
-        </div>
+        <div>Tap anywhere on the model to see alert!</div>
       </div>
 
-      <div id="click-indicator">Click detected!</div>
+      <div id="click-indicator">Model Clicked! 🎉</div>
 
       <!-- AR Scene will be created here dynamically -->
     </div>
@@ -259,35 +263,30 @@
               groundColor="#888888"
             ></a-light>
 
-            <!-- Camera with cursor for interaction -->
-            <a-entity
-              camera
-              look-controls
-              wasd-controls="acceleration: 20"
-              position="0 1.6 0"
-            >
-              <!-- Cursor without fuse - requires manual click -->
-              <a-cursor
-                id="cursor"
-                raycaster="objects: .clickable"
-                animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
-              ></a-cursor>
-            </a-entity>
+            <!-- Camera -->
+            <a-camera position="0 1.6 0" look-controls wasd-controls="acceleration: 20"></a-camera>
           </a-scene>
         `;
 
         arContainer.insertAdjacentHTML("beforeend", sceneHTML);
 
         // Wait for scene to be ready
-        setTimeout(() => {
+        const scene = document.querySelector("a-scene");
+        if (scene.hasLoaded) {
           initARExperience();
-        }, 1000);
+        } else {
+          scene.addEventListener("loaded", function () {
+            initARExperience();
+          });
+        }
       }
 
-      // Initialize AR experience
+      // Initialize AR experience with multiple detection methods
       function initARExperience() {
         const model = document.querySelector("#model");
         const clickIndicator = document.querySelector("#click-indicator");
+        const scene = document.querySelector("a-scene");
+        const canvas = document.querySelector("canvas");
         let modelLoaded = false;
 
         if (!model) {
@@ -295,55 +294,112 @@
           return;
         }
 
+        console.log("Initializing AR Experience...");
+
         // Log when model is loaded
         model.addEventListener("model-loaded", function () {
-          console.log("Model loaded successfully");
+          console.log("✅ Model loaded successfully");
           modelLoaded = true;
-
-          // Make sure the model is interactive
-          model.setAttribute("class", "clickable");
         });
 
         // Handle model loading errors
         model.addEventListener("model-error", function (error) {
-          console.error("Error loading model:", error);
+          console.error("❌ Error loading model:", error);
           document.querySelector("#controls div:last-child").textContent =
             "Error loading model! Check if vodafoneCharacters.glb exists.";
         });
 
-        // Set up model click handler - only trigger alert when model is clicked
-        model.addEventListener("click", function (evt) {
-          // Stop event propagation to prevent multiple alerts
-          if (evt) {
-            evt.stopPropagation();
-            evt.preventDefault();
-          }
-
-          console.log("Model clicked!");
-
-          // Only show alert if model is loaded
-          if (modelLoaded) {
-            // Use setTimeout to prevent iOS from freezing
-            setTimeout(() => {
-              alert("hi");
-            }, 100);
-
-            // Show visual feedback
-            clickIndicator.style.display = "block";
-            setTimeout(() => {
-              clickIndicator.style.display = "none";
-            }, 1000);
-          }
+        // Method 1: Direct mousedown on model
+        model.addEventListener("mousedown", function (evt) {
+          console.log("🖱️ Model mousedown detected");
+          showAlert();
         });
 
-        // Prevent scene clicks from triggering alerts
-        const scene = document.querySelector("a-scene");
-        if (scene) {
-          scene.addEventListener("click", function (evt) {
-            // Only log, don't show alert
-            console.log("Scene clicked (but not the model)");
+        // Method 2: Direct click on model
+        model.addEventListener("click", function (evt) {
+          console.log("🖱️ Model click detected");
+          showAlert();
+        });
+
+        // Method 3: Touch events for mobile
+        model.addEventListener("touchstart", function (evt) {
+          console.log("📱 Model touchstart detected");
+          evt.preventDefault();
+          showAlert();
+        });
+
+        // Method 4: Canvas click with raycasting
+        if (canvas) {
+          canvas.addEventListener("click", function (evt) {
+            console.log("🖱️ Canvas clicked");
+            checkRaycast(evt);
+          });
+
+          canvas.addEventListener("touchend", function (evt) {
+            console.log("📱 Canvas touched");
+            evt.preventDefault();
+            checkRaycast(evt.changedTouches[0]);
           });
         }
+
+        // Raycasting function
+        function checkRaycast(evt) {
+          if (!modelLoaded) {
+            console.log("⏳ Model not loaded yet");
+            return;
+          }
+
+          const camera = document.querySelector("a-camera");
+          if (!camera) return;
+
+          // Get mouse/touch position
+          const rect = canvas.getBoundingClientRect();
+          const x = evt.clientX - rect.left;
+          const y = evt.clientY - rect.top;
+
+          // Convert to normalized device coordinates
+          const mouse = {
+            x: (x / rect.width) * 2 - 1,
+            y: -(y / rect.height) * 2 + 1,
+          };
+
+          // Manual raycast check
+          const raycaster = new THREE.Raycaster();
+          const cameraEl = camera.object3D;
+
+          raycaster.setFromCamera(mouse, cameraEl.children[0] || cameraEl);
+
+          const modelObject = model.object3D;
+          const intersects = raycaster.intersectObject(modelObject, true);
+
+          if (intersects.length > 0) {
+            console.log("🎯 Raycast hit model!", intersects[0]);
+            showAlert();
+          } else {
+            console.log("❌ Raycast missed model");
+          }
+        }
+
+        // Show alert function with iOS compatibility
+        function showAlert() {
+          console.log("🎉 SHOWING ALERT");
+
+          // Show visual feedback immediately
+          clickIndicator.style.display = "block";
+          setTimeout(() => {
+            clickIndicator.style.display = "none";
+          }, 2000);
+
+          // Use setTimeout to prevent iOS from freezing
+          setTimeout(() => {
+            alert("hi");
+          }, 100);
+        }
+
+        // Log that everything is set up
+        console.log("✅ Event listeners attached");
+        console.log("Model element:", model);
+        console.log("Canvas element:", canvas);
       }
     </script>
   </body>
