@@ -97,12 +97,18 @@
         display: none;
       }
 
-      a-scene {
+      #ar-container {
         display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
       }
 
-      a-scene canvas {
-        cursor: pointer;
+      a-scene {
+        width: 100%;
+        height: 100%;
       }
 
       #loading {
@@ -147,126 +153,155 @@
       </div>
     </div>
 
-    <!-- AR Scene (initially hidden) -->
-    <div id="controls">
-      <div><strong>📱 AR Mode</strong></div>
-      <div>Point at the model and <strong>CLICK/TAP</strong> to see alert!</div>
+    <!-- AR Container (initially hidden) -->
+    <div id="ar-container">
+      <div id="controls">
+        <div><strong>📱 AR Mode</strong></div>
+        <div>
+          Point at the model and <strong>CLICK/TAP</strong> to see alert!
+        </div>
+      </div>
+
+      <div id="click-indicator">Click detected!</div>
+
+      <!-- AR Scene will be created here dynamically -->
     </div>
-
-    <div id="click-indicator">Click detected!</div>
-
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
-    >
-      <!-- World root to anchor the model -->
-      <a-entity id="world-root" position="0 0 0">
-        <a-entity
-          id="model"
-          gltf-model="./vodafoneCharacters.glb"
-          scale="3 3 3"
-          position="0 -1 -4"
-          rotation="0 0 0"
-          class="clickable"
-        ></a-entity>
-      </a-entity>
-
-      <!-- Lighting -->
-      <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
-      <a-light
-        type="directional"
-        intensity="1"
-        position="1 2 1"
-        color="#ffffff"
-      ></a-light>
-      <a-light
-        type="directional"
-        intensity="0.5"
-        position="-1 1 -1"
-        color="#ffffff"
-      ></a-light>
-      <a-light
-        type="hemisphere"
-        intensity="0.8"
-        color="#ffffff"
-        groundColor="#888888"
-      ></a-light>
-
-      <!-- Camera with cursor for interaction -->
-      <a-entity
-        camera
-        look-controls
-        wasd-controls="acceleration: 20"
-        position="0 1.6 0"
-      >
-        <!-- Cursor without fuse - requires manual click -->
-        <a-cursor
-          id="cursor"
-          raycaster="objects: .clickable"
-          animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
-        ></a-cursor>
-      </a-entity>
-    </a-scene>
 
     <script>
       // Get DOM elements
       const startScreen = document.getElementById("start-screen");
       const startButton = document.getElementById("start-button");
       const loading = document.getElementById("loading");
-      const scene = document.querySelector("a-scene");
+      const arContainer = document.getElementById("ar-container");
       const controls = document.getElementById("controls");
+      let sceneCreated = false;
 
       // Start button click handler
-      startButton.addEventListener("click", function () {
+      startButton.addEventListener("click", async function () {
         // Show loading indicator
         startButton.style.display = "none";
         loading.style.display = "block";
 
-        // Wait a moment to show loading, then start the AR experience
-        setTimeout(function () {
-          // Hide start screen and show AR scene
-          startScreen.style.opacity = "0";
-          setTimeout(function () {
-            startScreen.style.display = "none";
-            scene.style.display = "block";
-            controls.style.display = "block";
-          }, 500);
+        // Request camera permission first
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
 
-          // Initialize AR experience
-          initARExperience();
-        }, 1500);
+          // Stop the stream immediately - we just needed permission
+          stream.getTracks().forEach((track) => track.stop());
+
+          // Now create and start the AR scene
+          setTimeout(function () {
+            // Hide start screen and show AR
+            startScreen.style.opacity = "0";
+            setTimeout(function () {
+              startScreen.style.display = "none";
+              arContainer.style.display = "block";
+              controls.style.display = "block";
+
+              // Create the AR scene now
+              if (!sceneCreated) {
+                createARScene();
+                sceneCreated = true;
+              }
+            }, 500);
+          }, 500);
+        } catch (error) {
+          console.error("Camera permission denied:", error);
+          loading.style.display = "none";
+          startButton.style.display = "block";
+          alert(
+            "Camera access is required for AR experience. Please grant permission and try again."
+          );
+        }
       });
+
+      // Create AR Scene dynamically
+      function createARScene() {
+        const sceneHTML = `
+          <a-scene
+            embedded
+            arjs="sourceType: webcam; debugUIEnabled: false;"
+            vr-mode-ui="enabled: false"
+            renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true;"
+          >
+            <!-- World root to anchor the model -->
+            <a-entity id="world-root" position="0 0 0">
+              <a-entity
+                id="model"
+                gltf-model="./vodafoneCharacters.glb"
+                scale="3 3 3"
+                position="0 -2 -4"
+                rotation="0 0 0"
+                class="clickable"
+              ></a-entity>
+            </a-entity>
+
+            <!-- Lighting -->
+            <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
+            <a-light
+              type="directional"
+              intensity="1"
+              position="1 2 1"
+              color="#ffffff"
+            ></a-light>
+            <a-light
+              type="directional"
+              intensity="0.5"
+              position="-1 1 -1"
+              color="#ffffff"
+            ></a-light>
+            <a-light
+              type="hemisphere"
+              intensity="0.8"
+              color="#ffffff"
+              groundColor="#888888"
+            ></a-light>
+
+            <!-- Camera with cursor for interaction -->
+            <a-entity
+              camera
+              look-controls
+              wasd-controls="acceleration: 20"
+              position="0 1.6 0"
+            >
+              <!-- Cursor without fuse - requires manual click -->
+              <a-cursor
+                id="cursor"
+                raycaster="objects: .clickable"
+                animation__click="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; startEvents: click"
+              ></a-cursor>
+            </a-entity>
+          </a-scene>
+        `;
+
+        arContainer.insertAdjacentHTML("beforeend", sceneHTML);
+
+        // Wait for scene to be ready
+        setTimeout(() => {
+          initARExperience();
+        }, 1000);
+      }
 
       // Initialize AR experience
       function initARExperience() {
         const model = document.querySelector("#model");
-        const cursor = document.querySelector("#cursor");
         const clickIndicator = document.querySelector("#click-indicator");
+        let modelLoaded = false;
 
-        // Set up model click handler
-        model.addEventListener("click", function () {
-          console.log("Model clicked!");
-          alert("hi");
-
-          // Show visual feedback
-          clickIndicator.style.display = "block";
-          setTimeout(() => {
-            clickIndicator.style.display = "none";
-          }, 1000);
-        });
+        if (!model) {
+          console.error("Model element not found");
+          return;
+        }
 
         // Log when model is loaded
         model.addEventListener("model-loaded", function () {
           console.log("Model loaded successfully");
+          modelLoaded = true;
 
           // Make sure the model is interactive
           model.setAttribute("class", "clickable");
-
-          // Update instructions
-          document.querySelector("#controls div:last-child").textContent =
-            "Point at the model and CLICK/TAP to see alert!";
         });
 
         // Handle model loading errors
@@ -276,11 +311,39 @@
             "Error loading model! Check if vodafoneCharacters.glb exists.";
         });
 
-        // Add manual click detection for the entire scene
-        scene.addEventListener("click", function (evt) {
-          // This will fire for any click in the scene
-          console.log("Scene clicked", evt.detail);
+        // Set up model click handler - only trigger alert when model is clicked
+        model.addEventListener("click", function (evt) {
+          // Stop event propagation to prevent multiple alerts
+          if (evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+          }
+
+          console.log("Model clicked!");
+
+          // Only show alert if model is loaded
+          if (modelLoaded) {
+            // Use setTimeout to prevent iOS from freezing
+            setTimeout(() => {
+              alert("hi");
+            }, 100);
+
+            // Show visual feedback
+            clickIndicator.style.display = "block";
+            setTimeout(() => {
+              clickIndicator.style.display = "none";
+            }, 1000);
+          }
         });
+
+        // Prevent scene clicks from triggering alerts
+        const scene = document.querySelector("a-scene");
+        if (scene) {
+          scene.addEventListener("click", function (evt) {
+            // Only log, don't show alert
+            console.log("Scene clicked (but not the model)");
+          });
+        }
       }
     </script>
   </body>
